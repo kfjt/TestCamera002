@@ -2,6 +2,8 @@ package jp.ne.home.jcom.kfujita.testcamera002;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
@@ -15,6 +17,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -91,42 +94,53 @@ public class MainActivity extends AppCompatActivity {
             int height = camera.getParameters().getPreviewSize().height;
 
             YuvImage yuvImage = new YuvImage(bytes, ImageFormat.NV21, width, height, null);
-            saveJpegFromYuv(yuvImage, width, height);
+            Bitmap bitmap = getBitmapFormYuv(yuvImage, width, height);
+            MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "", "");
+//            saveJpegFromYuv(yuvImage, width, height);
         }
     };
 
-    private void saveJpegFromYuv(YuvImage yuvImage, int width, int height) {
-        String saveDir = Environment.getExternalStorageDirectory().getPath() + "/test";
-        File file = new File(saveDir);
-
-        if(!file.exists()){
-            file.mkdir();
-        }
-
-        Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
-        String imgPath = saveDir + "/" + simpleDateFormat.format(calendar.getTime()) + ".jpg";
-
-        OutputStream outputStream;
-        try {
-            outputStream = new FileOutputStream(new File(imgPath));
-            yuvImage.compressToJpeg(new Rect(0, 0, width, height), 100, outputStream);
-            outputStream.close();
-            registAndroidDB(imgPath);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        outputStream = null;
-
+    private Bitmap getBitmapFormYuv(YuvImage image, int width, int height) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        image.compressToJpeg(new Rect(0, 0, width, height), 100, outputStream);
+        byte[] data = outputStream.toByteArray();
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+        return bitmap;
     }
 
-    private void registAndroidDB(String path) {
-        ContentValues contentValues = new ContentValues();
-        ContentResolver contentResolver = MainActivity.this.getContentResolver();
-        contentValues.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-        contentValues.put("_data", path);
-        contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
-    }
+//    private void saveJpegFromYuv(YuvImage yuvImage, int width, int height) {
+//        String saveDir = Environment.getExternalStorageDirectory().getPath() + "/test";
+//        File file = new File(saveDir);
+//
+//        if(!file.exists()){
+//            file.mkdir();
+//        }
+//
+//        Calendar calendar = Calendar.getInstance();
+//        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
+//        String imgPath = saveDir + "/" + simpleDateFormat.format(calendar.getTime()) + ".jpg";
+//
+//        OutputStream outputStream;
+//        try {
+//            outputStream = new FileOutputStream(new File(imgPath));
+//            yuvImage.compressToJpeg(new Rect(0, 0, width, height), 100, outputStream);
+//            outputStream.close();
+//            registAndroidDB(imgPath);
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        outputStream = null;
+//
+//    }
+//
+//    private void registAndroidDB(String path) {
+//        ContentValues contentValues = new ContentValues();
+//        ContentResolver contentResolver = MainActivity.this.getContentResolver();
+//        contentValues.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+//        contentValues.put("_data", path);
+//        contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+//    }
 }
